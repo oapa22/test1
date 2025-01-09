@@ -99,7 +99,7 @@ class Screen4 extends StatelessWidget {
                   return Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: SizedBox(
-                      height: 210,
+                      height: 280,
                       child: Card(
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
