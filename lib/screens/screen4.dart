@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'dart:convert';
 import 'package:flutter/services.dart' as rootBundle;
 import 'package:clases2/provider/productdatamodel.dart';
-import 'package:clases2/provider/creator-model.dart';
+import 'package:clases2/provider/character-model.dart';
 import 'package:http/http.dart' as http;
 import 'package:crypto/crypto.dart';
 
@@ -79,7 +79,7 @@ class Screen4 extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.only(left: 16.0),
                 child: Text(
-                  'Creadores',
+                  'Personajes',
                   style: GoogleFonts.roboto(
                     fontSize: 28,
                     fontWeight: FontWeight.w700,
@@ -88,8 +88,8 @@ class Screen4 extends StatelessWidget {
                 ),
               ),
             ),
-            FutureBuilder<List<Creator>>(
-              future: fetchCreators(),
+            FutureBuilder<List<Character>>(
+              future: fetchCharacters(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
@@ -106,15 +106,15 @@ class Screen4 extends StatelessWidget {
                         ),
                         elevation: 5,
                         child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
+                          scrollDirection: Axis.vertical,
                           child: Padding(
                             padding: const EdgeInsets.all(16.0),
-                            child: Row(
-                              children: snapshot.data!.map((creator) {
-                                return _buildServiceCard(
-                                  imageUrl: creator.thumbnail ?? "Sin imagen",
-                                  nombre: creator.fullName ?? "Sin nombre",
-                                  precio: creator.lastName ?? "Sin precio",
+                            child: Column(
+                              children: snapshot.data!.map((character) {
+                                return _buildCharacterCard(
+                                  imageUrl: character.image ?? "Sin imagen",
+                                  nombre: character.name ?? "Sin nombre",
+                                  status: character.status ?? "Sin precio",
                                 );
                               }).toList(),
                             ),
@@ -164,10 +164,10 @@ class Screen4 extends StatelessWidget {
                             padding: const EdgeInsets.all(16.0),
                             child: Row(
                               children: items.map((item) {
-                                return _buildServiceCard(
+                                return _buildUserCard(
                                   imageUrl: item.urlAvatar ?? "Sin imagen",
                                   nombre: item.username ?? "Sin nombre",
-                                  precio: item.email ?? "Sin precio",
+                                  email: item.email ?? "Sin precio",
                                 );
                               }).toList(),
                             ),
@@ -278,11 +278,102 @@ class Screen4 extends StatelessWidget {
             ),
           ),
           Text(
-            '$precio\$',
+            precio,
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
               color: Colors.grey[700],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUserCard(
+      {required String imageUrl,
+      required String nombre,
+      required String email}) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 10.0),
+      child: Column(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              height: 120,
+              width: 120,
+              decoration: BoxDecoration(
+                image: DecorationImage(
+                  image: NetworkImage(imageUrl),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+          ),
+          Text(
+            nombre,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[700],
+            ),
+          ),
+          Text(
+            email,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[700],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCharacterCard(
+      {required String imageUrl,
+      required String nombre,
+      required String status}) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 10.0),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.network(
+              imageUrl,
+              height: 120,
+              width: 120,
+              fit: BoxFit.contain,
+            ),
+          ),
+          const SizedBox(
+            width: 16,
+            height: 130,
+          ),
+          Flexible(
+            flex: 1,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Nombre: $nombre',
+                  style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black),
+                ),
+                Text(
+                  'Estado: $status',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[700],
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -304,31 +395,21 @@ class Screen4 extends StatelessWidget {
     return list.map((e) => UsersDataModel.fromJson(e)).toList();
   }
 
-  String generateHash(String ts, String privateKey, String publicKey) {
-    String input = ts + privateKey + publicKey;
-    var bytes = utf8.encode(input);
-    var hash = md5.convert(bytes);
-    return hash.toString();
-  }
+  Future<List<Character>> fetchCharacters() async {
+    try {
+      final response = await http
+          .get(Uri.parse('https://rickandmortyapi.com/api/character'))
+          .timeout(const Duration(seconds: 10));
 
-  Future<List<Creator>> fetchCreators() async {
-    String ts = DateTime.now().millisecondsSinceEpoch.toString();
-    const String privateKey = '3948b816f4bbac7c5ba66089b009da4f65b4b102';
-    const String publicKey = 'ec3aac3cf4939c5982f58f589dbb0748';
-    String hash = generateHash(ts, privateKey, publicKey);
-
-    const String url = 'https://gateway.marvel.com/v1/public/creators';
-    final response = await http.get(Uri.parse(
-        '$url?ts=$ts&apikey=$publicKey&hash=$hash')); // Añade los parámetros ts, apikey y hash
-
-    if (response.statusCode == 200) {
-      final jsonData = json.decode(response.body);
-      List<dynamic> creatorsJson = jsonData['data']['results'];
-      return creatorsJson
-          .map((creatorJson) => Creator.fromJson(creatorJson))
-          .toList();
-    } else {
-      throw Exception('Failed to load creators');
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        List<dynamic> results = data['results'];
+        return results.map((e) => Character.fromJson(e)).toList();
+      } else {
+        throw Exception('Failed to load characters');
+      }
+    } catch (e) {
+      throw Exception('Error loading characters: $e');
     }
   }
 }

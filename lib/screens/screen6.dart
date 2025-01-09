@@ -1,7 +1,9 @@
-import 'package:clases2/provider/creator-model.dart';
+import 'dart:async';
+import 'package:clases2/provider/character-model.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:crypto/crypto.dart'; // Importa el paquete 'crypto'
 
 class Screen6 extends StatefulWidget {
   const Screen6({super.key});
@@ -11,29 +13,30 @@ class Screen6 extends StatefulWidget {
 }
 
 class _Screen6State extends State<Screen6> {
-  late Future<List<Creator>> futureCreators;
+  late Future<List<Character>> futureCreators;
 
   @override
   void initState() {
     super.initState();
-    futureCreators = fetchCreators();
+    futureCreators = fetchCharacters();
   }
 
-  Future<List<Creator>> fetchCreators() async {
-    const String url =
-        'https://gateway.marvel.com/v1/public/creators'; // URL de la API
-    const String apiKey = 'tu_api_key_aqui'; // Reemplaza con tu API Key
+  Future<List<Character>> fetchCharacters() async {
+    try {
+      final response = await http
+          .get(Uri.parse('https://rickandmortyapi.com/api/character'))
+          .timeout(const Duration(seconds: 10));
 
-    final response = await http.get(Uri.parse('$url?apikey=$apiKey'));
-
-    if (response.statusCode == 200) {
-      final jsonData = json.decode(response.body);
-      List<dynamic> creatorsJson = jsonData['data']['results'];
-      return creatorsJson
-          .map((creatorJson) => Creator.fromJson(creatorJson))
-          .toList();
-    } else {
-      throw Exception('Failed to load creators');
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        List<dynamic> results = data['results'];
+        return results.map((e) => Character.fromJson(e)).toList();
+      } else {
+        print('Error: ${response.statusCode}');
+        throw Exception('Failed to load characters');
+      }
+    } catch (e) {
+      throw Exception('Error loading characters: $e');
     }
   }
 
@@ -41,24 +44,31 @@ class _Screen6State extends State<Screen6> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Marvel Creators'),
+        title: const Text('Rick and Morty Characters'),
       ),
       body: Center(
-        child: FutureBuilder<List<Creator>>(
+        child: FutureBuilder<List<Character>>(
           future: futureCreators,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return CircularProgressIndicator();
+              return const CircularProgressIndicator();
             } else if (snapshot.hasError) {
               return Text('Error: ${snapshot.error}');
             } else if (snapshot.hasData) {
               return ListView.builder(
                 itemCount: snapshot.data!.length,
                 itemBuilder: (context, index) {
-                  Creator creator = snapshot.data![index];
-                  return ListTile(
-                    title: Text(creator.fullName),
-                    subtitle: Text('${creator.firstName} ${creator.lastName}'),
+                  Character character = snapshot.data![index];
+                  return Card(
+                    margin: const EdgeInsets.all(8.0),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.all(10.0),
+                      leading:
+                          Image.network(character.image, width: 50, height: 50),
+                      title: Text(character.name),
+                      subtitle: Text(
+                          'Gender: ${character.gender}\nStatus: ${character.status}'),
+                    ),
                   );
                 },
               );

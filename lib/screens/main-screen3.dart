@@ -1,5 +1,6 @@
 import 'package:clases2/screens/screen4.dart';
 import 'package:clases2/screens/screen5.dart';
+import 'package:clases2/screens/screen6.dart';
 import 'package:flutter/material.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 import 'package:clases2/screens/screen1.dart';
@@ -34,6 +35,7 @@ class _MainScreen3State extends State<MainScreen3> {
 
   List<Widget> _buildScreens() {
     return const [
+      // Screen6(),
       Screen4(
         title: '',
       ),
